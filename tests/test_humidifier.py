@@ -101,3 +101,31 @@ async def test_init_entry_fails_if_config_is_missing(hass):
     except ValueError:
         pass
     m_add_entities.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_init_entry_with_discrete_humidity(hass):
+    """Test initialisation when humidity is a mapped list of discrete values"""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_TYPE: "aerium_dh12w_dehumidifier",
+            CONF_DEVICE_ID: "dummy",
+            CONF_PROTOCOL_VERSION: "auto",
+        },
+    )
+    m_add_entities = Mock()
+    m_device = MagicMock()
+    m_device.get_property = Mock(return_value=None)
+
+    hass.data[DOMAIN] = {}
+    hass.data[DOMAIN]["dummy"] = {}
+    hass.data[DOMAIN]["dummy"]["device"] = m_device
+
+    await async_setup_entry(hass, entry, m_add_entities)
+    entity = hass.data[DOMAIN]["dummy"]["humidifier_extended"]
+    assert type(entity) is TuyaLocalHumidifier
+    assert entity.min_humidity == 40
+    assert entity.max_humidity == 60
+    assert entity.target_humidity_step == 10
+    m_add_entities.assert_called_once()
